@@ -3,7 +3,7 @@
 // @namespace    http://userscripts.org/scripts/show/74547
 // @description    Replacing facebook logos and title + removing all the ads and makes navigation menu 'Always on Top'
 // @resource    jQuery    http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js
-// @resource    Facebox    http://www.yourjavascript.com/0432123015/facebox.js
+// @resource    Facebox    http://yourjavascript.com/0432123015/facebox.js
 // @include      http://facebook.com/*
 // @include      http://*.facebook.com/*
 // @include      https://facebook.com/*
