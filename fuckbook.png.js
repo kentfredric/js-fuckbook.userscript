@@ -1,0 +1,8 @@
+(function(){
+
+document.FUCKBOOK.png = {
+
+};
+
+
+});
