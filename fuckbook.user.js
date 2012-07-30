@@ -134,7 +134,7 @@ apply_theme_css('failbook');
 apply_theme_css('f337book');
 apply_theme_css('facebutt');
 
-if (settings.getValue('theme') == 'custom')) {
+if (settings.getValue('theme') == 'custom') {
   set_titletext(settings.getValue('titleCustomValue'));
 }
 if (settings.getValue('removeAds')) {
