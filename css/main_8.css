@@ -28,7 +28,8 @@
 
 #pageLogo,#jewelCase
 {
-	position:fixed !important;
+	/* Seems to break buttons */
+	/* position:fixed !important;  */
 	top:10px !important;
 }
 
