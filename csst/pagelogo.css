@@ -1,0 +1,19 @@
+#pageLogo a
+{
+	background:#3b5998 url(%IMAGE%) no-repeat -21px 0 !important;
+	display:block !important;
+	height:31px !important;
+	width:103px !important;
+}
+
+#pageLogo a:hover,#pageLogo a:focus,#pageLogo a:active
+{
+	background-color:#4b67a1 !important;
+	background-position:-21px -31px !important;
+	outline:none !important;
+}
+
+#pageLogo span
+{
+	display:none !important;
+}

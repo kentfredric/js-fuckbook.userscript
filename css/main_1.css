@@ -1,0 +1,84 @@
+h2.dialog_title
+{
+	background:#6d84b4;
+	border:1px solid #3b5998;
+	border-bottom:none;
+}
+
+h2 span
+{
+	color:#fff;
+	display:block;
+	font-size:14px;
+	font-weight:700;
+	padding:5px 10px;
+}
+
+div.footer
+{
+	border:1px solid #000;
+	border-top:none;
+}
+
+#fuckbook_options_container
+{
+	border-bottom:1px solid #ccc;
+	border-left:1px solid #000;
+	border-right:1px solid #000;
+	height:204px;
+	padding:10px;
+	width:446px;
+}
+
+#options_button
+{
+	background:#3b5998 url(https://github.com/kentfredric/js-fuckbook.userscript/raw/main/png/options_button.png) no-repeat;
+	background-position:3px -25px;
+	height:31px;
+	left:111px;
+	position:absolute;
+	top:10px;
+	width:24px;
+}
+
+a.jewelToggler
+{
+	height:31px !important;
+	position:relative !important;
+	top:-1px !important;
+}
+
+#options_button:hover,#options_button:active
+{
+	background-color:#4b67a1;
+	background-position:3px 7px;
+}
+
+#footer
+{
+	background-color:#f2f2f2;
+	border-bottom:1px solid #000;
+	border-left:1px solid #000;
+	border-right:1px solid #000;
+	height:32px;
+	padding-top:7px;
+}
+
+#footer input
+{
+	float:right;
+	font-family:"lucida grande",tahoma,verdana,arial,sans-serif;
+	font-size:14px !important;
+	padding:3px !important;
+}
+
+#footer #fuckbookCancel
+{
+	margin-left:4px;
+	margin-right:7px;
+}
+
+#facebox input::-moz-focus-inner
+{
+	border:0;
+}

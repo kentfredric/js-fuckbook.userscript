@@ -2,8 +2,17 @@
 // @name      Fuckbook
 // @namespace    http://userscripts.org/scripts/show/74547
 // @description    Replacing facebook logos and title + removing all the ads and makes navigation menu 'Always on Top'
-// @resource    jQuery    http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js
+// @require     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/lib/queue.js
+// @require     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/lib/injector.js
+// @resource    jQuery     http://code.jquery.com/jquery-1.7.2.js
 // @resource    Facebox    http://yourjavascript.com/0432123015/facebox.js
+// @resource    css_0     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/css/main_0.css
+// @resource    css_1     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/css/main_1.css
+// @resource    css_7     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/css/main_7.css
+// @resource    css_8     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/css/main_8.css
+// @resource    css_9     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/css/main_9.css
+// @resource    pagelogo     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/csst/pagelogo.css
+
 // @include      http://facebook.com/*
 // @include      http://*.facebook.com/*
 // @include      https://facebook.com/*
@@ -17,70 +26,12 @@
 
 //saveDefaultSettings();
 
-var ctx = {};
-
-ctx.syslog = function( message ){
-  GM_log( (new Date()).getTime() + " " + message, { x: arguments } );
-};
-
-var Queue = function(name) {
-  var qname = name;
-	var items = [];
-	var pos   = 0;
-	var stash = { };
-	stash.addItem = function( name , fn ){ 
-		items.push({
-			name : name,
-			fn : fn,
-		});
-	};
-	stash.run_current = function(){
-		if ( typeof item[pos] == 'undefined' ){ 
-			return;
-		}
-		items[ pos ].fn();
-	};
-	stash.next = function() {
-		pos = pos + 1;
-	};
-	stash.dequeue = function(){
-		if ( typeof items[pos] == 'undefined' ){ 
-			return;
-		}
-		var fn = items[ pos ].fn;
-		ctx.syslog(qname + ':dequeue ' + items[pos].name );
-		pos = pos + 1;
-		fn();
-	};
-	stash.add_repeater = function( name, test, success ) {
-		var cb_code = function() {
-			if ( test() ){
-				success();
-			} else {
-				setTimeout( cb_code , 10 );
-			}
-		};
-		stash.addItem( name , cb_code );
-	};
-	stash.add_wait = function( name, test ){ 
-		stash.add_repeater( name, test, function(){ 
-			stash.dequeue();
-		});
-	};
-  stash.add_event = function( name, code ){ 
-    stash.addItem(name, function(){
-      code(stash);
-      stash.dequeue();
-    });
-  };
-  stash.abort = function(){
-    ctx.syslog(qname + ':manual abort');
-    pos = items.length + 1;
-  };
-	return stash;
+Queue.log = function(message){
+  GM_log(message);
 };
 
 var bootwait = Queue();
+
 bootwait.add_wait( 'unsafeWindow', function(){ 
 	return typeof unsafeWindow != 'undefined';
 });
@@ -96,82 +47,28 @@ bootwait.add_event('abort_weird', function(stash){
   };
   return false;
 });
-bootwait.add_event('domain_trace', function(){
-    ctx.syslog = function( message ){
-      GM_log( (new Date()).getTime() + ":" + message, { origin: unsafeWindow.document.location , x: arguments });
-    };
-});
 bootwait.add_wait('header waiter',function(){
-  return typeof unsafeWindow.document.getElementsByTagName('head') == 'object';
+  return typeof unsafeWindow.document.getElementsByTagName('body') == 'object';
 });
-
+bootwait.add_event('inject-jquery', function(){
+    Injector.inject_script( unsafeWindow, GM_getResourceText('jQuery'));
+});
+bootwait.add_wait('jQuery loaded', function(){ 
+  return typeof unsafeWindow.jQuery != 'undefined';
+});
+bootwait.add_event('inject-facebox', function(){ 
+  Injector.inject_script( unsafeWindow, GM_getResourceText('Facebox'));
+});
+bootwait.add_wait('Facebox loaded', function(){ 
+  return typeof unsafeWindow.jQuery.facebox != 'undefined';
+});
 bootwait.add_event('Main Code', function(){
+  GM_log( unsafeWindow.jQuery, unsafeWindow.jQuery.facebox );
 
-  var main = function() {
 
-    try {
-      var sys = {};
-      sys.lib = {};
-      sys.lib.jQuery = GM_getResourceText('jQuery');
-      sys.lib.Facebox = GM_getResourceText('Facebox');
 
-      var inject_script = function(source, label, trigger, callback){
-        var d = unsafeWindow.document;
-        var head = d.getElementsByTagName('head');
-        var script = d.createElement('script');
-        script.type="application/javascript";
-        script.innerHTML = source;
-        script.attributes['id'] = label;
-        head.appendChild(script);
-        var waitfn = function() {
-          if( typeof unsafeWindow[trigger] == 'undefined' ){
-            window.setTimeout( waitfn , 100 );
-          } else {
-            callback( unsafeWindow, unsafeWindow[trigger] );
-          }
-        };
 
-      };
 
-      inject_script(sys.lib.jQuery, 'jquery-src', 'jQuery', function( win, $ ){ 
-        inject_script(sys.lib.Facebox, 'facebox-src', 'Facebox', function( win, fb ) { 
-        GM_log([ "Loaded" , win, $, fb ]);
-        });
-      });
-    } catch( e ){
-      GM_log(e);
-    }
-
-  };
-
-});
-
-bootwait.dequeue();
-
-/*
- 
-(function () {
-  var head = document.getElementsByTagName('head')[0];
-  var script = document.createElement('script');
-  script.type = 'text/javascript';
-  var jQuery = GM_getResourceText('jQuery');
-  var Facebox = GM_getResourceText('Facebox');
-  script.innerHTML = jQuery + Facebox;
-  head.appendChild(script);
-  unsafeWindow.jQuery.noConflict();
-  $ = unsafeWindow.jQuery
-})();
-
-function GM_wait() {
-  if (typeof unsafeWindow.jQuery == 'undefined') {
-    window.setTimeout(GM_wait, 100)
-  } else {
-    unsafeWindow.jQuery.noConflict();
-    jQuery = unsafeWindow.jQuery;
-    letsJQuery()
-  }
-}
-GM_wait();
 var theme_map = { };
 
 var github_base = "https://github.com/kentfredric/js-fuckbook.userscript/raw/";
@@ -184,20 +81,6 @@ var add_theme = function( name, optionName, titletext ){
 		css_title: github_base + github_commit + "/png/" + name + "/pagelogo.png",
 	};
 };
-var apply_css = function( css ) {
-	if( typeof GM_addStyle != "undefined" ) { 
-		GM_addStyle( css );
-	} else {
-		var heads = document.getElementsByTagName("head");
-		if ( heads.length > 0 ) {
-			var node = document.createElement("style");
-			node.type = "text/css";
-			node.appendChild(document.createTextNode(css));
-			heads[0].appendChild(node);
-		}
-	}
-};
-
 add_theme( 'fuckbook', 'logoFuckbook', 'Fuckbook' );
 add_theme( 'f337book', 'logoF337book', 'F337book' );
 add_theme( 'facebutt', 'logoFacebutt', 'Facebutt' );
@@ -205,16 +88,12 @@ add_theme( 'failbook', 'logoFailbook', 'Failbook' );
 add_theme( 'fakebook', 'logoFakebook', 'Fakebook' );
 
 var gen_css = function( theme ) {
-	return 
-		"#pageLogo a { background:#3b5998 url(" + theme_map[ theme ].css_title + ") no-repeat -21px 0 !important; display:block !important;  height:31px !important; width:103px !important; }" +
-		"#pageLogo a:hover, #pageLogo a:focus, #pageLogo a:active {  outline:none !important;  background-color:#4b67a1 !important;  background-position:-21px -31px !important; }"  + 
-		"#pageLogo span { display:none !important; }"
-	
+	return GM_getResourceText('pagelogo').replace('%IMAGE%',theme_map[theme].css_title );	
 };
 
 var set_titletext = function( text ) {
     var titleset = function () {
-      document.title = document.title.replace("Facebook", text );
+      unsafeWindow.document.title = unsafeWindow.document.title.replace("Facebook", text );
     };
     for ( var i = 25; i < 1000 ; i+= 25 ){ 
     	setTimeout(titleset, i);
@@ -229,7 +108,7 @@ var set_titletext = function( text ) {
 var apply_theme_css = function( theme ) { 
 	var theme_data = theme_map[ theme ];
 	if( GM_getValue( theme_data.option ) == 'checked' ){
-		apply_css( gen_css(theme)); 
+		Injector.inject_css( unsafeWindow, gen_css(theme)); 
 		if (GM_getValue('titleSameAsLogo') == 'checked') {
     			set_titletext(theme_data.titletext);
 		}
@@ -239,8 +118,8 @@ var apply_theme_css = function( theme ) {
 	
 
 
-apply_css( document.FUCKBOOK.css[0] );
-apply_css( document.FUCKBOOK.css[1] );
+Injector.inject_css( unsafewindow,  GM_getResourceText('css_0') );
+aInjector.inject_css( unsafewindow, GM_getResourceText('css_1') );
 apply_theme_css('fuckbook');
 apply_theme_css('fakebook');
 apply_theme_css('failbook');
@@ -251,7 +130,7 @@ if (GM_getValue('titleCustom') == 'checked') {
   set_titletext(GM_getValue('titleCustomValue'));
 }
 if (GM_getValue('removeAds') == 'checked') {
-  apply_css(document.FUCKBOOK.css[7]);
+  Injector.inject_css( unsafewindow,  GM_getResourceText('css_7'));
   var allAds, thisAd;
   var logging = true;
   allAds = document.evaluate("//iframe[contains(@src, 'http://ads.')] | //iframe[contains(@src, 'http://ad.')] | //iframe[contains(@src, '/ad.php?')] | //iframe[contains(@src, '/banner')] | //div[contains(@id, 'sponsor')]", document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -262,11 +141,14 @@ if (GM_getValue('removeAds') == 'checked') {
   }
 }
 if (GM_getValue('fixedHeader') == 'checked') {
-  apply_css( document.FUCKBOOK.css[8] );
+  Injector.inject_css( unsafewindow,  GM_getResourceText('css_8'));
 }
 if (GM_getValue('hideChatBar') == 'checked') {
-  apply_css( document.FUCKBOOK.css[9] );
+  Injector.inject_css( unsafewindow,  GM_getResourceText('css_9'));
 }
+
+});
+bootwait.dequeue();
 
 /*
 
