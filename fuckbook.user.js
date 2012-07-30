@@ -4,6 +4,7 @@
 // @description    Replacing facebook logos and title + removing all the ads and makes navigation menu 'Always on Top'
 // @require     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/lib/queue.js
 // @require     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/lib/injector.js
+// @require     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/lib/gm_settings.js
 // @resource    jQuery     http://code.jquery.com/jquery-1.7.2.js
 // @resource    Facebox    http://yourjavascript.com/0432123015/facebox.js
 // @resource    css_0     https://raw.github.com/kentfredric/js-fuckbook.userscript/master/css/main_0.css
@@ -29,6 +30,13 @@
 Queue.log = function(message){
   GM_log(message);
 };
+var settings = GMSettings();
+settings.addDefault('theme', 'fuckbook');
+settings.addDefault('titleSameAsLogo', true );
+settings.addDefault('titleCustomValue', 'Custom');
+settings.addDefault('removeAds', true );
+settings.addDefault('fixedHeader', true );
+settings.addDefault('hideChatBar', false );
 
 var bootwait = Queue();
 
@@ -73,19 +81,19 @@ var theme_map = { };
 
 var github_base = "https://github.com/kentfredric/js-fuckbook.userscript/raw/";
 var github_commit = "51b3053651b9288aedfd588de89e2d489b2bb81d";
-var add_theme = function( name, optionName, titletext ){
-	theme_map.[name] = {
+var add_theme = function( name, optionName, titletext , isDefault ){
+	theme_map[name] = {
 		option: optionName,
 		titletext: titletext,
 		title: github_base + github_commit + "/png/" + name + "/logo.png",
 		css_title: github_base + github_commit + "/png/" + name + "/pagelogo.png",
 	};
 };
-add_theme( 'fuckbook', 'logoFuckbook', 'Fuckbook' );
-add_theme( 'f337book', 'logoF337book', 'F337book' );
-add_theme( 'facebutt', 'logoFacebutt', 'Facebutt' );
-add_theme( 'failbook', 'logoFailbook', 'Failbook' );
-add_theme( 'fakebook', 'logoFakebook', 'Fakebook' );
+add_theme( 'fuckbook', 'logoFuckbook', 'Fuckbook', true );
+add_theme( 'f337book', 'logoF337book', 'F337book', false );
+add_theme( 'facebutt', 'logoFacebutt', 'Facebutt', false );
+add_theme( 'failbook', 'logoFailbook', 'Failbook', false );
+add_theme( 'fakebook', 'logoFakebook', 'Fakebook', false );
 
 var gen_css = function( theme ) {
 	return GM_getResourceText('pagelogo').replace('%IMAGE%',theme_map[theme].css_title );	
@@ -107,9 +115,9 @@ var set_titletext = function( text ) {
 
 var apply_theme_css = function( theme ) { 
 	var theme_data = theme_map[ theme ];
-	if( GM_getValue( theme_data.option ) == 'checked' ){
+	if( settings.getValue('theme') == theme ){
 		Injector.inject_css( unsafeWindow, gen_css(theme)); 
-		if (GM_getValue('titleSameAsLogo') == 'checked') {
+		if ( settings.getValue('titleSameAsLogo')) {
     			set_titletext(theme_data.titletext);
 		}
 	}
@@ -118,19 +126,19 @@ var apply_theme_css = function( theme ) {
 	
 
 
-Injector.inject_css( unsafewindow,  GM_getResourceText('css_0') );
-aInjector.inject_css( unsafewindow, GM_getResourceText('css_1') );
+Injector.inject_css( unsafeWindow,  GM_getResourceText('css_0') );
+Injector.inject_css( unsafeWindow, GM_getResourceText('css_1') );
 apply_theme_css('fuckbook');
 apply_theme_css('fakebook');
 apply_theme_css('failbook');
 apply_theme_css('f337book');
 apply_theme_css('facebutt');
 
-if (GM_getValue('titleCustom') == 'checked') {
-  set_titletext(GM_getValue('titleCustomValue'));
+if (settings.getValue('theme') == 'custom')) {
+  set_titletext(settings.getValue('titleCustomValue'));
 }
-if (GM_getValue('removeAds') == 'checked') {
-  Injector.inject_css( unsafewindow,  GM_getResourceText('css_7'));
+if (settings.getValue('removeAds')) {
+  Injector.inject_css( unsafeWindow,  GM_getResourceText('css_7'));
   var allAds, thisAd;
   var logging = true;
   allAds = document.evaluate("//iframe[contains(@src, 'http://ads.')] | //iframe[contains(@src, 'http://ad.')] | //iframe[contains(@src, '/ad.php?')] | //iframe[contains(@src, '/banner')] | //div[contains(@id, 'sponsor')]", document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -140,11 +148,11 @@ if (GM_getValue('removeAds') == 'checked') {
     thisAd.parentNode.removeChild(thisAd)
   }
 }
-if (GM_getValue('fixedHeader') == 'checked') {
-  Injector.inject_css( unsafewindow,  GM_getResourceText('css_8'));
+if (settings.getValue('fixedHeader')) {
+  Injector.inject_css( unsafeWindow,  GM_getResourceText('css_8'));
 }
-if (GM_getValue('hideChatBar') == 'checked') {
-  Injector.inject_css( unsafewindow,  GM_getResourceText('css_9'));
+if (settings.getValue('hideChatBar')) {
+  Injector.inject_css( unsafeWindow,  GM_getResourceText('css_9'));
 }
 
 });
