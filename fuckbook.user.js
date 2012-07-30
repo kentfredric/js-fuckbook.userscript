@@ -8,10 +8,170 @@
 // @include      http://*.facebook.com/*
 // @include      https://facebook.com/*
 // @include      https://*.facebook.com/*
+// @exclude      http://facebook.com/ai.php*
+// @exclude      http://*facebook.com/ai.php*
+// @exclude      https://facebook.com/ai.php*
+// @exclude      https://*facebook.com/ai.php*
 // @version      2.7
 // ==/UserScript==
-saveDefaultSettings();
 
+//saveDefaultSettings();
+
+var ctx = {};
+
+ctx.syslog = function( message ){
+  GM_log( (new Date()).getTime() + " " + message, { x: arguments } );
+};
+
+var Queue = function(name) {
+  var qname = name;
+	var items = [];
+	var pos   = 0;
+	var stash = { };
+	stash.addItem = function( name , fn ){ 
+		items.push({
+			name : name,
+			fn : fn,
+		});
+	};
+	stash.run_current = function(){
+		if ( typeof item[pos] == 'undefined' ){ 
+			return;
+		}
+		items[ pos ].fn();
+	};
+	stash.next = function() {
+		pos = pos + 1;
+	};
+	stash.dequeue = function(){
+		if ( typeof items[pos] == 'undefined' ){ 
+			return;
+		}
+		var fn = items[ pos ].fn;
+		ctx.syslog(qname + ':dequeue ' + items[pos].name );
+		pos = pos + 1;
+		fn();
+	};
+	stash.add_repeater = function( name, test, success ) {
+		var cb_code = function() {
+			if ( test() ){
+				success();
+			} else {
+				setTimeout( cb_code , 10 );
+			}
+		};
+		stash.addItem( name , cb_code );
+	};
+	stash.add_wait = function( name, test ){ 
+		stash.add_repeater( name, test, function(){ 
+			stash.dequeue();
+		});
+	};
+  stash.add_event = function( name, code ){ 
+    stash.addItem(name, function(){
+      code(stash);
+      stash.dequeue();
+    });
+  };
+  stash.abort = function(){
+    ctx.syslog(qname + ':manual abort');
+    pos = items.length + 1;
+  };
+	return stash;
+};
+
+var bootwait = Queue();
+bootwait.add_wait( 'unsafeWindow', function(){ 
+	return typeof unsafeWindow != 'undefined';
+});
+bootwait.add_wait('document', function(){ 
+	return typeof unsafeWindow.document != 'undefined';
+});
+bootwait.add_wait('location', function(){
+	return typeof unsafeWindow.document.location != 'undefined' ;
+});
+bootwait.add_event('abort_weird', function(stash){
+  if ( unsafeWindow.document.location['pathname'] == '/ai.php' ) {
+    stash.abort();
+  };
+  return false;
+});
+bootwait.add_event('domain_trace', function(){
+    ctx.syslog = function( message ){
+      GM_log( (new Date()).getTime() + ":" + message, { origin: unsafeWindow.document.location , x: arguments });
+    };
+});
+bootwait.add_wait('header waiter',function(){
+  return typeof unsafeWindow.document.getElementsByTagName('head') == 'object';
+});
+
+bootwait.add_event('Main Code', function(){
+
+  var main = function() {
+
+    try {
+      var sys = {};
+      sys.lib = {};
+      sys.lib.jQuery = GM_getResourceText('jQuery');
+      sys.lib.Facebox = GM_getResourceText('Facebox');
+
+      var inject_script = function(source, label, trigger, callback){
+        var d = unsafeWindow.document;
+        var head = d.getElementsByTagName('head');
+        var script = d.createElement('script');
+        script.type="application/javascript";
+        script.innerHTML = source;
+        script.attributes['id'] = label;
+        head.appendChild(script);
+        var waitfn = function() {
+          if( typeof unsafeWindow[trigger] == 'undefined' ){
+            window.setTimeout( waitfn , 100 );
+          } else {
+            callback( unsafeWindow, unsafeWindow[trigger] );
+          }
+        };
+
+      };
+
+      inject_script(sys.lib.jQuery, 'jquery-src', 'jQuery', function( win, $ ){ 
+        inject_script(sys.lib.Facebox, 'facebox-src', 'Facebox', function( win, fb ) { 
+        GM_log([ "Loaded" , win, $, fb ]);
+        });
+      });
+    } catch( e ){
+      GM_log(e);
+    }
+
+  };
+
+});
+
+bootwait.dequeue();
+
+/*
+ 
+(function () {
+  var head = document.getElementsByTagName('head')[0];
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  var jQuery = GM_getResourceText('jQuery');
+  var Facebox = GM_getResourceText('Facebox');
+  script.innerHTML = jQuery + Facebox;
+  head.appendChild(script);
+  unsafeWindow.jQuery.noConflict();
+  $ = unsafeWindow.jQuery
+})();
+
+function GM_wait() {
+  if (typeof unsafeWindow.jQuery == 'undefined') {
+    window.setTimeout(GM_wait, 100)
+  } else {
+    unsafeWindow.jQuery.noConflict();
+    jQuery = unsafeWindow.jQuery;
+    letsJQuery()
+  }
+}
+GM_wait();
 var theme_map = { };
 
 var github_base = "https://github.com/kentfredric/js-fuckbook.userscript/raw/";
@@ -109,28 +269,7 @@ if (GM_getValue('hideChatBar') == 'checked') {
 }
 
 /*
-(function () {
-  var head = document.getElementsByTagName('head')[0];
-  var script = document.createElement('script');
-  script.type = 'text/javascript';
-  var jQuery = GM_getResourceText('jQuery');
-  var Facebox = GM_getResourceText('Facebox');
-  script.innerHTML = jQuery + Facebox;
-  head.appendChild(script);
-  unsafeWindow.jQuery.noConflict();
-  $ = unsafeWindow.jQuery
-})();
 
-function GM_wait() {
-  if (typeof unsafeWindow.jQuery == 'undefined') {
-    window.setTimeout(GM_wait, 100)
-  } else {
-    unsafeWindow.jQuery.noConflict();
-    jQuery = unsafeWindow.jQuery;
-    letsJQuery()
-  }
-}
-GM_wait();
 
 function letsJQuery() {
   if (GM_getValue('logoFuckbook') == 'checked') {
